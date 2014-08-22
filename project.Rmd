@@ -1,0 +1,156 @@
+---
+output: pdf_document
+---
+Relationship between transmission type and fuel economy
+========================================================
+
+## Executive summary
+
+This report attempts to answer the following questions:
+* “Is an automatic or manual transmission better for MPG”
+* "Quantify the MPG difference between automatic and manual transmissions"
+
+Ultimately, the model I selected shows that the switch from an automatic to a manual transmission should result in a 1.8mpg gain in fuel economy; however, the model has a high level of uncertainty, so it should not be considered determinative.  Using another variable in the data set to predict MPG is likely to provide a more accurate result.
+
+## Exploratory analysis
+
+``` {r, echo=FALSE}
+data(mtcars)
+```
+
+A pairs plot shows that there are several variables that affect MPG, but it's still difficult to tell which variables affect MPG the most.  
+
+(See Figure 1 in the Appendix)
+
+Figure 2 in the Appendix contains a table of correlations showing the variables with the strongest correlation to MPG from left to right.  Transmission type has only the 7th strongest correlation with MPG.
+
+Thus, I will need to consider several different variables when constructing a model.
+
+## Determing the model
+
+The first step in fitting the model is to compare different models that contain different variables.
+
+``` {r, echo=FALSE}
+carMod <- lm(mpg ~ factor(am), data=mtcars)
+carMod2 <- update(carMod, mpg ~ factor(am) + wt)
+carMod3 <- update(carMod, mpg ~ factor(am) + wt + factor(cyl))
+carMod4 <- update(carMod, mpg ~ factor(am) + wt + factor(cyl) + hp)
+carMod5 <- update(carMod, mpg ~ factor(am) + wt + factor(cyl) + hp + disp)
+```
+
+Based on Figure 3 in the Appendix, I have determined that the model which includes the transmission type, weight, number of cylinders, and horsepower (carMod4) is the most appropriate model.
+
+## Diagnostics
+
+Now that I've selected a model, I must run diagnostics in order to determine whether there are any obvious issues with our model in terms of residuals or outliers.
+
+### Residual plot
+
+(See Figure 4 in the Appendix)
+
+The residuals for carMod4 are in a more or less random pattern, so it appears that a linear model is appropriate for this dataset.
+
+### Dfbetas 
+
+The dfbetas measure the effect on coefficient if you leave a particular data point out of the model.
+
+(See Figure 5 in the Appendix)
+
+### Dffits 
+
+The dffits measure the change in the predicted response when a particular data point is removed from the model.
+
+(See Figure 6 in the Appendix)
+
+### Hat values
+
+Hat values look at each data point's potential for influence.
+
+(See Figure 7 in the Appendix)
+
+### Summary of diagnostics
+
+Looking at the dfbetas, dffits, and hat values, it appears that the Maserati Bora has some strong effects on the coefficients and the greatest potential for influence.  Excluding the Maserati Bora from the data set might result in a better model.
+
+## Answering the questions
+
+According to Figure 8, the change from an automatic to a manual transmission (keeping all other variables constant) should result in a 1.81mpg increase in fuel efficiency.
+
+Thus, the answers to the questions posed are:
+* In general, manual transmissions are better for fuel effiency.
+* There is a 1.8mpg gain in fuel economy going from an automatic to a manual transmission.
+
+## Quantifying the uncertainty
+
+In order to quantify the uncertainty, I'll need a confidence interval (Figure 9) for any prediction based on the move from an automatic to a manual transmission
+
+These numbers tell us that moving from an automatic to a manual tranmission could have anywhere from a 1.1mpg loss in fuel efficiency to a 4.7mpg gain in fuel efficiency.
+
+It's pretty clear that there is a lot of uncertainty in the model.  The other variables have such a strong effect that the predicitive value of the transmission type is fairly low.
+
+## Conclusion
+
+While the model predicts that switching from an automatic to a manual transmission should have a 1.8mpg gain in fuel economy, the predictive power of the model in regards to MPG is not very strong.  One of the other variables in the data set is most likely a better predictor of fuel economy.
+
+\newpage
+
+## Appendix - Figures
+
+### Figure 1
+
+``` {r, echo=FALSE}
+pairs(mtcars, col=3 + (mtcars$am >0), panel=panel.smooth, main="Relationships among variables in mtcars")
+```
+
+### Figure 2
+
+``` {r, echo=FALSE}
+carCor <- cor(mtcars)[1,-1]
+carCor <- carCor[order(-abs(carCor))]
+carCor
+```
+
+### Figure 3
+
+``` {r, echo=FALSE}
+anova(carMod, carMod2, carMod3, carMod4,carMod5)
+```
+
+### Figure 4
+
+``` {r, echo=FALSE}
+## Residual plot for the selected model
+plot(predict(carMod4), resid(carMod4), main="Residuals vs. Fitted", ylab="Residuals", xlab="Fitted Values")
+abline(lm(resid(carMod4) ~ predict(carMod4)), col="red")
+```
+
+### Figure 5
+
+``` {r, echo=FALSE}
+head(round(dfbetas(carMod4), 3))
+```
+
+### Figure 6
+
+``` {r, echo=FALSE}
+head(round(dffits(carMod4), 3))
+```
+
+### Figure 7
+
+``` {r, echo=FALSE}
+head(round(hatvalues(carMod4), 3))
+```
+
+### Figure 8
+
+``` {r, echo=FALSE}
+head(round(hatvalues(carMod4), 3))
+```
+
+### Figure 9
+
+``` {r, echo=FALSE}
+sumCoef <- summary(carMod4)$coefficients
+sumCoef[2,1] + c(-1,1)*qt(.975, df=carMod4$df) * sumCoef[2,2]
+```
